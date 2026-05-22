@@ -182,7 +182,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TECNICOS = {
   DF: { key:"DF", nome:"Diego Fernandes", tel:"5518996812807" },
-  KH: { key:"KH", nome:"Kayk Henrique",   tel:"5518991208901" }
+  KH: { key:"KH", nome:"Kayk Henrique",   tel:"5518991208901" },
+  RS: { key:"RS", nome:"Rodolfo",         tel:"" }
 };
 const p = new URLSearchParams(location.search);
 const tecKey = (p.get("tec")||"DF").toUpperCase();
