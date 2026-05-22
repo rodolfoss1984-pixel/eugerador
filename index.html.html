@@ -772,6 +772,7 @@ function cardClienteGrid(c){
       <button class="cc-btn" onclick="verHistoricoCliente('${c.id}','${c.nome.replace(/'/g,"")}')">📋 Histórico</button>
       <button class="cc-btn" onclick="openEditCliente('${c.id}')">✏️ Editar</button>
       <button class="cc-btn primary" onclick="abrirChamadoPara('${c.id}')">+ Chamado</button>
+      <button class="cc-btn" onclick="excluirCliente('${c.id}','${c.nome.replace(/'/g,"")}')" style="color:#8b1a1a;border-color:#f5c0c0;flex:0;padding:4px 8px">🗑</button>
     </div>
   </div>`;
 }
@@ -787,6 +788,7 @@ function cardClienteRow(c){
       <button class="cc-btn" onclick="verHistoricoCliente('${c.id}','${c.nome.replace(/'/g,"")}')">📋</button>
       <button class="cc-btn" onclick="openEditCliente('${c.id}')">✏️</button>
       <button class="cc-btn primary" onclick="abrirChamadoPara('${c.id}')">+ OS</button>
+      <button class="cc-btn" onclick="excluirCliente('${c.id}','${c.nome.replace(/'/g,"")}')" style="color:#8b1a1a;border-color:#f5c0c0">🗑</button>
     </div>
   </div>`;
 }
@@ -866,6 +868,17 @@ async function salvarCliente(){
     } else showToast("Erro ao salvar: "+(error?.message||""));
   }
 }
+
+async function excluirCliente(id, nome){
+  const ok = await confirm('Excluir o cliente "' + nome + '"? Esta ação não pode ser desfeita.', 'Excluir');
+  if(!ok) return;
+  const {error} = await sb.from('clientes').delete().eq('id', id);
+  if(error){ showToast('Erro ao excluir: ' + (error.message||'')); return; }
+  CLIENTES = CLIENTES.filter(c=>c.id!==id);
+  renderClientes();
+  showToast('✓ Cliente excluído!');
+}
+
 function abrirChamadoPara(id){
   const c=CLIENTES.find(x=>x.id===id);switchTab("chamados");openNew();
   setTimeout(()=>{document.getElementById("f-client").value=c.nome;document.getElementById("f-client").dataset.clienteId=id;document.getElementById("f-addr").value=c.endereco||((c.cidade||"")+(c.estado?", "+c.estado:""));},100);
