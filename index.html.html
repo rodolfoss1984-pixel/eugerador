@@ -359,8 +359,8 @@ body{font-family:'DM Sans',sans-serif;background:#f0efe9;color:#1a1916;min-heigh
     </div>
     <div class="pill"><div class="dot" style="background:#e24b4a"></div><span id="s-open">0</span>&nbsp;abertos</div>
     <div class="pill"><div class="dot" style="background:#e0891a"></div><span id="s-prog">0</span>&nbsp;andamento</div>
-    <div class="pill" id="pill-df" title="Diego Fernandes"><div class="dot" style="background:#185FA5"></div>DF: <span id="cnt-df">0</span></div>
-    <div class="pill" id="pill-kh" title="Kayk Henrique"><div class="dot" style="background:#534AB7"></div>KH: <span id="cnt-kh">0</span></div>
+    <div class="pill" id="pill-df" title="Diego Fernandes"><div class="dot" id="dot-df" style="background:#ccc"></div>Diego: <span id="cnt-df">0</span> OS</div>
+    <div class="pill" id="pill-kh" title="Kayk Henrique"><div class="dot" id="dot-kh" style="background:#ccc"></div>Kayk: <span id="cnt-kh">0</span> OS</div>
   </div>
   <div class="topbar-right">
     <button class="btn-arq" onclick="abrirArquivo()">📁 Arquivo <span id="cnt-arq">0</span></button>
@@ -1687,6 +1687,29 @@ async function agCellDrop(e, dateStr, hora){
   renderSemana();
   renderKanban();
 }
+
+/* ─── MONITOR TÉCNICOS ─── */
+async function monitorarTecnicos(){
+  const{data}=await sb.from('tecnicos').select('id,online,ultimo_acesso');
+  if(!data) return;
+  data.forEach(t=>{
+    const dot=document.getElementById('dot-'+t.id.toLowerCase());
+    const pill=document.getElementById('pill-'+t.id.toLowerCase());
+    if(!dot) return;
+    // Considera online se último acesso foi há menos de 3 minutos
+    const agora=new Date();
+    const ultimo=t.ultimo_acesso?new Date(t.ultimo_acesso):null;
+    const diffMin=ultimo?(agora-ultimo)/60000:999;
+    const online=t.online && diffMin<3;
+    dot.style.background=online?'#25D366':'#e24b4a';
+    dot.title=online?'Online':'Offline'+(ultimo?' — último acesso: '+ultimo.toLocaleTimeString('pt-BR'):'');
+    pill.title=(t.id==='DF'?'Diego Fernandes':'Kayk Henrique')+' — '+(online?'Online':'Offline');
+  });
+}
+
+// Verificar a cada 30 segundos
+monitorarTecnicos();
+setInterval(monitorarTecnicos, 30*1000);
 
 /* ─── INIT ─── */
 initCfg();
