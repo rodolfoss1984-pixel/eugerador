@@ -181,11 +181,12 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TECNICOS = {
-  DF: { nome:"Diego Fernandes", tel:"5518996812807" },
-  KH: { nome:"Kayk Henrique",   tel:"5518991208901" }
+  DF: { key:"DF", nome:"Diego Fernandes", tel:"5518996812807" },
+  KH: { key:"KH", nome:"Kayk Henrique",   tel:"5518991208901" }
 };
 const p = new URLSearchParams(location.search);
-const TEC = TECNICOS[(p.get("tec")||"DF").toUpperCase()] || TECNICOS.DF;
+const tecKey = (p.get("tec")||"DF").toUpperCase();
+const TEC = TECNICOS[tecKey] || TECNICOS.DF;
 document.getElementById("tec-nome").textContent = TEC.nome;
 
 const PBCLS = { urgente:"badge-urg", normal:"badge-nor", baixa:"badge-bai" };
@@ -200,18 +201,23 @@ function ix(id){ const i=DB.findIndex(c=>c.id===id); return String(i>=0?i+1:0).p
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2600); }
 
 async function loadOS(){
-  const {data,error}=await sb.from("chamados").select("*").in("status",["aberto","andamento"]).order("data_agendada",{ascending:true,nullsFirst:false});
-  if(error){ console.error("Erro ao carregar OS:",error); document.getElementById("lista").innerHTML='<div class="empty">Erro ao carregar. Verifique sua conexão.</div>'; return; }
-  const chamados = data||[];
-  // Busca telefones dos clientes separadamente
-  const idsClientes = [...new Set(chamados.filter(c=>c.cliente_id).map(c=>c.cliente_id))];
-  let telMap = {};
-  if(idsClientes.length){
-    const {data:clientes}=await sb.from("clientes").select("id,telefone").in("id",idsClientes);
-    if(clientes) clientes.forEach(c=>{ telMap[c.id]=c.telefone||""; });
+  try{
+    const {data,error}=await sb.from("chamados").select("*").in("status",["aberto","andamento"]).order("data_agendada",{ascending:true,nullsFirst:false});
+    if(error){ console.error("Erro ao carregar OS:",error); document.getElementById("lista").innerHTML='<div class="empty">Erro ao carregar: '+error.message+'</div>'; return; }
+    const chamados = data||[];
+    // Busca telefones dos clientes separadamente
+    const idsClientes = [...new Set(chamados.filter(c=>c.cliente_id).map(c=>c.cliente_id))];
+    let telMap = {};
+    if(idsClientes.length){
+      const {data:clientes}=await sb.from("clientes").select("id,telefone").in("id",idsClientes);
+      if(clientes) clientes.forEach(c=>{ telMap[c.id]=c.telefone||""; });
+    }
+    DB = chamados.map(c=>({...c, _tel: telMap[c.cliente_id]||""}));
+    renderLista();
+  } catch(e){
+    console.error("Erro inesperado:",e);
+    document.getElementById("lista").innerHTML='<div class="empty">Erro: '+e.message+'</div>';
   }
-  DB = chamados.map(c=>({...c, _tel: telMap[c.cliente_id]||""}));
-  renderLista();
 }
 
 function renderLista(){
@@ -350,6 +356,22 @@ async function acaoPrincipal(){
     setTimeout(()=>voltarLista(),1200);
   }
 }
+
+// ─── ONLINE / OFFLINE ───────────────────────────────────
+async function setOnline(status){
+  await sb.from('tecnicos').update({
+    online: status,
+    ultimo_acesso: new Date().toISOString()
+  }).eq('id', TEC.key);
+}
+
+setOnline(true);
+setInterval(()=>setOnline(true), 2*60*1000);
+window.addEventListener('beforeunload', ()=>setOnline(false));
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) setOnline(false);
+  else setOnline(true);
+});
 
 loadOS();
 </script>
