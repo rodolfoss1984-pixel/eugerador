@@ -682,14 +682,14 @@ const TEC_COR={DF:["#e8eef5","#1e3a5f"],KH:["#f0edf5","#3d1f6b"]};
 const BCLS={urgente:"b-urg",normal:"b-nor",baixa:"b-bai"};
 const CORES=[["#e8f0ea","#2d5a3d"],["#e8eef5","#1e3a5f"],["#f5ece4","#6b2d0a"],["#f0edf5","#3d1f6b"],["#faeeda","#633806"],["#fdeaea","#7a1a1a"],["#e4f5ee","#0a4a2d"]];
 
-let DB=[],CLIENTES=[],fP=null,editId=null,viewId=null,dragId=null,clienteView="grid";
+let DB=[],DB_NUM=[],CLIENTES=[],fP=null,editId=null,viewId=null,dragId=null,clienteView="grid";
 let leafMap=null,leafMarker=null,pinLat=null,pinLng=null,fotosNovas=[];
 let confirmCallback=null,editClienteId=null;
 
 /* ─── UTILS ─── */
 function fD(d){if(!d)return"—";if(d.includes("T"))d=d.split("T")[0];const p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0]}
 function fDT(d,t){let s=fD(d);if(t&&t!=="—")s+=" às "+t.slice(0,5);return s}
-function ix(id){const i=DB.findIndex(c=>c.id===id);return String(i>=0?i+1:0).padStart(3,"0")}
+function ix(id){const i=(DB_NUM.length?DB_NUM:DB).findIndex(c=>c.id===id);return String(i>=0?i+1:0).padStart(3,"0")}
 function cor(nome){let h=0;for(let c of(nome||"A"))h=(h*31+c.charCodeAt(0))&0xffff;return CORES[h%CORES.length]}
 function ini(nome){const p=(nome||"?").trim().split(/\s+/);return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():(nome||"?").slice(0,2).toUpperCase()}
 function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500)}
@@ -708,9 +708,15 @@ function confirm(msg,okLabel="Confirmar"){
 function confirmResp(ok){cls("confirm-overlay");if(confirmCallback)confirmCallback(ok);confirmCallback=null;}
 
 /* ─── SUPABASE ─── */
+let DB_NUM=[]; // ordenado por criação para numeração fixa
+
 async function loadChamados(){
   const{data,error}=await sb.from("chamados").select("*").neq("status","arquivado").order("data_criacao",{ascending:false});
-  if(!error&&data)DB=data;
+  if(!error&&data){
+    DB=data;
+    // DB_NUM ordenado por data_criacao crescente para numeração estável
+    DB_NUM=[...data].sort((a,b)=>(a.data_criacao||"")>(b.data_criacao||"")?1:-1);
+  }
   renderKanban();updateStats();
   if(document.getElementById("tab-agenda")?.classList.contains("active"))renderAgenda();
 }
