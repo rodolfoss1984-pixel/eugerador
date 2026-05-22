@@ -594,7 +594,7 @@ body{font-family:'DM Sans',sans-serif;background:#f0efe9;color:#1a1916;min-heigh
         <div class="fg"><label>Estado</label><input id="nc-estado" placeholder="SP"/></div>
       </div>
     </div>
-    <div class="mfoot"><button class="btn-sec" onclick="document.getElementById('m-novo-cliente').dataset.voltarForm='';editClienteId=null;cls('m-novo-cliente')">Cancelar</button><button class="btn-save" onclick="salvarCliente()">Salvar</button></div>
+    <div class="mfoot"><button class="btn-del" id="btn-del-cliente" style="display:none" onclick="excluirClienteModal()">Excluir</button><div class="spacer"></div><button class="btn-sec" onclick="document.getElementById('m-novo-cliente').dataset.voltarForm='';editClienteId=null;cls('m-novo-cliente')">Cancelar</button><button class="btn-save" onclick="salvarCliente()">Salvar</button></div>
   </div>
 </div>
 
@@ -829,6 +829,7 @@ async function verHistoricoCliente(id,nome){
 function openNovoCliente(){
   editClienteId=null;
   document.getElementById("m-cliente-titulo").textContent="Novo cliente";
+  document.getElementById("btn-del-cliente").style.display="none";
   ["nc-nome","nc-tel","nc-email","nc-end","nc-cidade","nc-estado"].forEach(id=>document.getElementById(id).value="");
   opn("m-novo-cliente");setTimeout(()=>document.getElementById("nc-nome").focus(),80);
 }
@@ -845,6 +846,7 @@ function openEditCliente(id){
   const c=CLIENTES.find(x=>x.id===id);if(!c)return;
   editClienteId=id;
   document.getElementById("m-cliente-titulo").textContent="Editar cliente";
+  document.getElementById("btn-del-cliente").style.display="inline-flex";
   document.getElementById("nc-nome").value=c.nome||"";
   document.getElementById("nc-tel").value=c.telefone||"";
   document.getElementById("nc-email").value=c.email||"";
@@ -880,6 +882,21 @@ async function salvarCliente(){
       if(vf){document.getElementById("m-novo-cliente").dataset.voltarForm="";document.getElementById("f-client").value=data.nome;document.getElementById("f-client").dataset.clienteId=data.id;if(data.endereco)document.getElementById("f-addr").value=data.endereco;opn("m-form");}
     } else showToast("Erro ao salvar: "+(error?.message||""));
   }
+}
+
+async function excluirClienteModal(){
+  if(!editClienteId) return;
+  const c=CLIENTES.find(x=>x.id===editClienteId);
+  if(!c) return;
+  const ok=window.confirm('Excluir o cliente "'+c.nome+'"? Esta ação não pode ser desfeita.');
+  if(!ok) return;
+  const{error}=await sb.from('clientes').delete().eq('id',editClienteId);
+  if(error){ showToast('Erro ao excluir: '+(error.message||'')); return; }
+  CLIENTES=CLIENTES.filter(x=>x.id!==editClienteId);
+  editClienteId=null;
+  cls('m-novo-cliente');
+  renderClientes();
+  showToast('✓ Cliente excluído!');
 }
 
 async function excluirCliente(id, nome){
