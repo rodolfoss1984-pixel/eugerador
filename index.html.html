@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EU Gerador — Sistema</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='7' y='2' width='10' height='20' rx='2' fill='%23e8640a'/><rect x='9' y='4' width='6' height='12' rx='1' fill='white'/><circle cx='12' cy='19' r='1' fill='white'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -344,9 +345,17 @@ body{font-family:'DM Sans',sans-serif;background:#f0efe9;color:#1a1916;min-heigh
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <div>
-      <div class="logo-text">EU Gerador</div>
-      <div class="logo-sub">Sistema de OS</div>
+    <div style="display:flex;align-items:center;gap:9px">
+      <svg width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="2" width="10" height="20" rx="2.5" fill="#e8640a"/>
+        <rect x="9" y="4.5" width="6" height="11" rx="1" fill="#fff"/>
+        <circle cx="12" cy="18.5" r="1.2" fill="#fff"/>
+        <rect x="10" y="3" width="4" height="1" rx=".5" fill="#c85208"/>
+      </svg>
+      <div>
+        <div class="logo-text">EU Gerador</div>
+        <div class="logo-sub">Sistema de OS</div>
+      </div>
     </div>
     <div class="pill"><div class="dot" style="background:#e24b4a"></div><span id="s-open">0</span>&nbsp;abertos</div>
     <div class="pill"><div class="dot" style="background:#e0891a"></div><span id="s-prog">0</span>&nbsp;andamento</div>
@@ -870,7 +879,7 @@ async function salvarCliente(){
 }
 
 async function excluirCliente(id, nome){
-  const ok = await confirm('Excluir o cliente "' + nome + '"? Esta ação não pode ser desfeita.', 'Excluir');
+  const ok = window.confirm('Excluir o cliente "' + nome + '"? Esta ação não pode ser desfeita.');
   if(!ok) return;
   const {error} = await sb.from('clientes').delete().eq('id', id);
   if(error){ showToast('Erro ao excluir: ' + (error.message||'')); return; }
@@ -1050,23 +1059,45 @@ async function saveChamado(){
   const cl=document.getElementById("f-client").value.trim();
   const ad=document.getElementById("f-addr").value.trim();
   const de=document.getElementById("f-desc").value.trim();
-  if(!cl){document.getElementById("f-client").focus();return}
-  if(!ad){document.getElementById("f-addr").focus();return}
-  if(!de){document.getElementById("f-desc").focus();return}
+  if(!cl){showToast("Informe o cliente");document.getElementById("f-client").focus();return}
+  if(!ad){showToast("Informe o endereço");document.getElementById("f-addr").focus();return}
+  if(!de){showToast("Informe a descrição");document.getElementById("f-desc").focus();return}
   const dt=document.getElementById("f-date").value;
-  if(!dt){const ok=await confirm("Data agendada não preenchida. Continuar assim?");if(!ok)return;}
+  if(!dt){
+    const ok=window.confirm("Data agendada não preenchida. Continuar assim?");
+    if(!ok)return;
+  }
+  const tipo=document.getElementById("f-type").value;
+  const prio=document.getElementById("f-prio").value;
+  const tec=document.getElementById("f-tec").value||null;
+  const hora=document.getElementById("f-time").value||null;
+  const mats=document.getElementById("f-mats").value.trim();
+  const lat=document.getElementById("f-lat").value||null;
+  const lng=document.getElementById("f-lng").value||null;
+  const cliId=document.getElementById("f-client").dataset.clienteId||null;
+
   const payload={
-    cliente_nome:cl,cliente_id:document.getElementById("f-client").dataset.clienteId||null,
-    endereco:ad,tipo:document.getElementById("f-type").value,
-    prioridade:document.getElementById("f-prio").value,
-    tecnico:document.getElementById("f-tec").value||null,
-    data_agendada:dt||null,hora_agendada:document.getElementById("f-time").value||null,
-    descricao:de,materiais:document.getElementById("f-mats").value.trim(),
-    lat:document.getElementById("f-lat").value||null,lng:document.getElementById("f-lng").value||null
+    cliente_nome:cl, cliente_id:cliId,
+    endereco:ad, tipo:tipo,
+    prioridade:prio, tecnico:tec,
+    data_agendada:dt||null, hora_agendada:hora,
+    descricao:de, materiais:mats,
+    lat:lat, lng:lng
   };
-  if(editId){await sb.from("chamados").update(payload).eq("id",editId);}
-  else{await sb.from("chamados").insert(payload);}
-  cls("m-form");loadChamados();showToast("✓ Chamado salvo!");
+
+  let error;
+  if(editId){
+    const res=await sb.from("chamados").update(payload).eq("id",editId);
+    error=res.error;
+  } else {
+    const res=await sb.from("chamados").insert(payload);
+    error=res.error;
+  }
+
+  if(error){ showToast("Erro ao salvar: "+(error.message||JSON.stringify(error))); return; }
+  cls("m-form");
+  loadChamados();
+  showToast("✓ Chamado salvo!");
 }
 
 async function openDetail(id){
@@ -1119,13 +1150,13 @@ async function mudarStatus(id,status){
   cls("m-detail");loadChamados();showToast("✓ Status atualizado!");
 }
 async function deletarChamado(id){
-  const ok=await confirm("Excluir este chamado permanentemente?","Excluir");
+  const ok=window.confirm("Excluir este chamado permanentemente?");
   if(!ok)return;
   await sb.from("chamados").delete().eq("id",id);
   cls("m-detail");loadChamados();showToast("✓ Chamado excluído!");
 }
 async function arquivarChamado(id){
-  const ok=await confirm("Arquivar este chamado? Ele sairá do kanban.","Arquivar");
+  const ok=window.confirm("Arquivar este chamado? Ele sairá do kanban.");
   if(!ok)return;
   const hoje=new Date().toISOString().split("T")[0];
   await sb.from("chamados").update({status:"arquivado",data_conclusao:hoje}).eq("id",id);
