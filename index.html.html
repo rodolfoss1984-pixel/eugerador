@@ -361,6 +361,7 @@ body{font-family:'DM Sans',sans-serif;background:#f0efe9;color:#1a1916;min-heigh
     <div class="pill"><div class="dot" style="background:#e0891a"></div><span id="s-prog">0</span>&nbsp;andamento</div>
     <div class="pill" id="pill-df" title="Diego Fernandes"><div class="dot" id="dot-df" style="background:#ccc"></div>Diego: <span id="cnt-df">0</span> OS</div>
     <div class="pill" id="pill-kh" title="Kayk Henrique"><div class="dot" id="dot-kh" style="background:#ccc"></div>Kayk: <span id="cnt-kh">0</span> OS</div>
+    <div class="pill" id="pill-rs" title="Rodolfo"><div class="dot" id="dot-rs" style="background:#ccc"></div>Rodolfo: <span id="cnt-rs">0</span> OS</div>
   </div>
   <div class="topbar-right">
     <button class="btn-arq" onclick="abrirArquivo()">📁 Arquivo <span id="cnt-arq">0</span></button>
@@ -486,6 +487,7 @@ body{font-family:'DM Sans',sans-serif;background:#f0efe9;color:#1a1916;min-heigh
           <option value="">— Sem técnico —</option>
           <option value="DF">Diego Fernandes</option>
           <option value="KH">Kayk Henrique</option>
+          <option value="RS">Rodolfo</option>
         </select>
       </div>
       <div class="fg"><label>Descrição *</label><textarea id="f-desc" placeholder="DESCREVA O PROBLEMA OU SERVIÇO..."></textarea></div>
@@ -676,9 +678,9 @@ function populateSelects(){
 }
 
 /* ─── ESTADO ─── */
-const TECHS=[{key:"DF",name:"Diego Fernandes",num:"5518996812807"},{key:"KH",name:"Kayk Henrique",num:"5518991208901"}];
+const TECHS=[{key:"DF",name:"Diego Fernandes",num:"5518996812807"},{key:"KH",name:"Kayk Henrique",num:"5518991208901"},{key:"RS",name:"Rodolfo",num:""}];
 const TICON={"Instalação":"⚡","Manutenção":"🔧","Limpeza":"🧹","Vistoria":"🔍","Orçamento":"📋","Monitoramento":"🖥","Outros":"📌"};
-const TEC_COR={DF:["#e8eef5","#1e3a5f"],KH:["#f0edf5","#3d1f6b"]};
+const TEC_COR={DF:["#e8eef5","#1e3a5f"],KH:["#f0edf5","#3d1f6b"],RS:["#e8f5e9","#1a5c2a"]};
 const BCLS={urgente:"b-urg",normal:"b-nor",baixa:"b-bai"};
 const CORES=[["#e8f0ea","#2d5a3d"],["#e8eef5","#1e3a5f"],["#f5ece4","#6b2d0a"],["#f0edf5","#3d1f6b"],["#faeeda","#633806"],["#fdeaea","#7a1a1a"],["#e4f5ee","#0a4a2d"]];
 
@@ -736,6 +738,7 @@ async function updateStats(){
   document.getElementById("cnt-arq").textContent=arq;
   document.getElementById("cnt-df").textContent=data.filter(c=>c.tecnico==="DF"&&c.status!=="arquivado").length;
   document.getElementById("cnt-kh").textContent=data.filter(c=>c.tecnico==="KH"&&c.status!=="arquivado").length;
+  document.getElementById("cnt-rs").textContent=data.filter(c=>c.tecnico==="RS"&&c.status!=="arquivado").length;
 }
 
 /* ─── TABS ─── */
