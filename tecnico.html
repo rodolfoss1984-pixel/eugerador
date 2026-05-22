@@ -202,7 +202,10 @@ function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg
 
 async function loadOS(){
   try{
-    const {data,error}=await sb.from("chamados").select("*").in("status",["aberto","andamento"]).order("data_agendada",{ascending:true,nullsFirst:false});
+    const {data,error}=await sb.from("chamados").select("*")
+      .in("status",["aberto","andamento"])
+      .or("tecnico.eq."+TEC.key+",tecnico.is.null")
+      .order("data_agendada",{ascending:true,nullsFirst:false});
     if(error){ console.error("Erro ao carregar OS:",error); document.getElementById("lista").innerHTML='<div class="empty">Erro ao carregar: '+error.message+'</div>'; return; }
     const chamados = data||[];
     // Busca telefones dos clientes separadamente
