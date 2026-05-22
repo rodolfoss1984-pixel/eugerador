@@ -370,6 +370,18 @@ async function setOnline(status){
 
 setOnline(true);
 setInterval(()=>setOnline(true), 2*60*1000);
+
+// Atualiza OS a cada 30 segundos
+setInterval(()=>{
+  if(document.getElementById("v-lista").style.display!=="none") loadOS();
+}, 30*1000);
+
+// Realtime — atualiza na hora quando qualquer OS muda
+sb.channel('chamados-changes')
+  .on('postgres_changes', {event:'*', schema:'public', table:'chamados'}, ()=>{
+    if(document.getElementById("v-lista").style.display!=="none") loadOS();
+  })
+  .subscribe();
 window.addEventListener('beforeunload', ()=>setOnline(false));
 document.addEventListener('visibilitychange', ()=>{
   if(document.hidden) setOnline(false);
