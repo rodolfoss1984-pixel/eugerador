@@ -572,7 +572,14 @@ body{font-family:'DM Sans',sans-serif;background:#f0efe9;color:#1a1916;min-heigh
       <input id="mapa-busca" type="text" placeholder="Buscar endereço..." style="flex:1;border:1px solid #ccc9be;border-radius:6px;padding:7px 11px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none" onkeydown="if(event.key==='Enter')buscarEndereco()">
       <button onclick="buscarEndereco()" style="background:#e8640a;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer">Buscar</button>
     </div>
-    <div style="padding:7px 16px;background:#fef3dc;border-bottom:1px solid #f0d090;font-size:12px;color:#7a4010">⚡ Clique no mapa para posicionar o pin. Arraste para ajustar.</div>
+    <div style="padding:7px 16px;background:#fef3dc;border-bottom:1px solid #f0d090;font-size:12px;color:#7a4010;display:flex;align-items:center;justify-content:space-between">
+      <span>⚡ Clique no mapa para posicionar o pin. Arraste para ajustar.</span>
+      <div style="display:flex;gap:4px">
+        <button onclick="setMapLayer('rua')" id="btn-layer-rua" style="padding:3px 8px;font-size:11px;border-radius:4px;border:1px solid #e2e0d8;background:#fff;cursor:pointer;font-family:'DM Sans',sans-serif">🗺 Rua</button>
+        <button onclick="setMapLayer('satelite')" id="btn-layer-sat" style="padding:3px 8px;font-size:11px;border-radius:4px;border:1px solid #e2e0d8;background:#f0efe9;cursor:pointer;font-family:'DM Sans',sans-serif">🛰 Satélite</button>
+        <button onclick="setMapLayer('hibrido')" id="btn-layer-hyb" style="padding:3px 8px;font-size:11px;border-radius:4px;border:1px solid #e2e0d8;background:#f0efe9;cursor:pointer;font-family:'DM Sans',sans-serif">🔀 Híbrido</button>
+      </div>
+    </div>
     <div id="leaflet-map" style="height:380px;width:100%"></div>
     <div style="padding:10px 16px;border-top:1px solid #e2e0d8;display:flex;align-items:center;justify-content:space-between;gap:8px">
       <span id="pin-coords" style="font-size:11px;color:#9e9b94;font-family:'DM Mono',monospace">Nenhum pin marcado</span>
@@ -686,7 +693,7 @@ const BCLS={urgente:"b-urg",normal:"b-nor",baixa:"b-bai"};
 const CORES=[["#e8f0ea","#2d5a3d"],["#e8eef5","#1e3a5f"],["#f5ece4","#6b2d0a"],["#f0edf5","#3d1f6b"],["#faeeda","#633806"],["#fdeaea","#7a1a1a"],["#e4f5ee","#0a4a2d"]];
 
 let DB=[],DB_NUM=[],CLIENTES=[],fP=null,editId=null,viewId=null,dragId=null,clienteView="grid";
-let leafMap=null,leafMarker=null,pinLat=null,pinLng=null,fotosNovas=[];
+let leafMap=null,leafMarker=null,leafLayer=null,pinLat=null,pinLng=null,fotosNovas=[];
 let confirmCallback=null,editClienteId=null;
 
 /* ─── UTILS ─── */
@@ -1233,8 +1240,8 @@ function abrirMapa(){
   opn("m-mapa");
   setTimeout(()=>{
     if(!leafMap){
-      leafMap=L.map("leaflet-map").setView([-20.7542,-51.7033],14);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19}).addTo(leafMap);
+      leafMap=L.map("leaflet-map").setView([-20.8712,-51.4876],13);
+      leafLayer=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19}).addTo(leafMap);
       leafMap.on("click",e=>{setPin(e.latlng.lat,e.latlng.lng);});
     } else {leafMap.invalidateSize();}
 
@@ -1247,7 +1254,7 @@ function abrirMapa(){
     const endForm=document.getElementById("f-addr").value.trim();
     if(endForm){
       document.getElementById("mapa-busca").value=endForm;
-      setTimeout(()=>buscarEndereco(),300);
+      setTimeout(()=>buscarEndereco(),500);
     }
   },200);
 }
@@ -1284,6 +1291,38 @@ async function setPin(lat,lng){
     }
   } catch(e){ /* silencioso */ }
 }
+function setMapLayer(tipo){
+  if(!leafMap) return;
+  if(leafLayer) leafMap.removeLayer(leafLayer);
+  const layers={
+    rua:"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    satelite:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    hibrido:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+  };
+  const attr={
+    rua:"© OpenStreetMap",
+    satelite:"© Esri",
+    hibrido:"© Esri"
+  };
+  leafLayer=L.tileLayer(layers[tipo],{attribution:attr[tipo],maxZoom:19}).addTo(leafMap);
+  
+  // Adicionar labels nas visões satélite/híbrido
+  if(tipo==="hibrido"){
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+      opacity:0.4,maxZoom:19,attribution:""
+    }).addTo(leafMap);
+  }
+
+  // Atualizar botões
+  ["rua","sat","hyb"].forEach(b=>{
+    const el=document.getElementById("btn-layer-"+b);
+    if(el) el.style.background="#f0efe9";
+  });
+  const map={rua:"rua",satelite:"sat",hibrido:"hyb"};
+  const btn=document.getElementById("btn-layer-"+map[tipo]);
+  if(btn) btn.style.background="#e8640a",btn.style.color="#fff",btn.style.borderColor="#e8640a";
+}
+
 function confirmarPin(){
   if(!pinLat)return;
   document.getElementById("f-lat").value=pinLat;
@@ -1294,113 +1333,36 @@ function confirmarPin(){
 }
 async function buscarEndereco(){
   const q=document.getElementById("mapa-busca").value.trim();
-  if(!q)return;
-  const qFull=q+", Três Lagoas, Brasil";
-  try{
-    // Usa Google Maps Geocoding via link direto — sem CORS
-    const url="https://photon.komoot.io/api/?q="+encodeURIComponent(qFull)+"&limit=1&lang=pt";
-    const r=await fetch(url);
-    const d=await r.json();
-    if(d.features&&d.features.length){
-      const[lon,lat]=d.features[0].geometry.coordinates;
-      setPin(lat,lon);
-      leafMap.setView([lat,lon],17);
-      const props=d.features[0].properties;
-      const nome=(props.street?(props.housenumber?props.street+", "+props.housenumber:props.street):q);
-      document.getElementById("mapa-busca").value=nome+(props.city?", "+props.city:"");
-      showToast("✓ "+nome+" encontrado!");
-    } else {
-      showToast("Endereço não encontrado — tente: Rua Nome, Número");
-    }
-  } catch(e){
-    showToast("Erro na busca. Clique no mapa para marcar manualmente.");
+  if(!q) return;
+
+  // Cidades da região em ordem de prioridade
+  const cidades=[
+    "Castilho, SP, Brasil",
+    "Tres Lagoas, MS, Brasil",
+    "Andradina, SP, Brasil",
+    "Ilha Solteira, SP, Brasil",
+    "Itapura, SP, Brasil",
+    "Aparecida do Taboado, MS, Brasil",
+    "Brasilandia, MS, Brasil"
+  ];
+
+  for(const cidade of cidades){
+    try{
+      const url="https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&accept-language=pt-BR&countrycodes=br&q="+encodeURIComponent(q+", "+cidade);
+      const r=await fetch(url);
+      const d=await r.json();
+      if(d&&d.length){
+        const{lat,lon,display_name}=d[0];
+        setPin(parseFloat(lat),parseFloat(lon));
+        leafMap.setView([lat,lon],18);
+        const curto=display_name.split(",").slice(0,3).join(",").trim();
+        document.getElementById("mapa-busca").value=curto;
+        showToast("✓ "+curto);
+        return;
+      }
+    } catch(e){}
   }
-}
-
-/* ─── FOTOS ─── */
-function previewFotos(input){
-  const grid=document.getElementById("fotos-grid");
-  Array.from(input.files).forEach(f=>{
-    fotosNovas.push(f);
-    const r=new FileReader();
-    r.onload=e=>{
-      const img=document.createElement("img");
-      img.src=e.target.result;img.className="foto-thumb";
-      grid.insertBefore(img,grid.lastElementChild);
-    };r.readAsDataURL(f);
-  });
-}
-async function saveExec(){
-  const obs=document.getElementById("f-exec").value.trim();
-  if(viewId){await sb.from("chamados").update({observacoes:obs}).eq("id",viewId);}
-  cls("m-exec");showToast("✓ Execução registrada!");
-}
-
-/* ─── CONFIGURAÇÕES ─── */
-function abrirConfig(){
-  renderCfgTipos();renderCfgPrios();renderCfgTemplates();opn("m-config");
-}
-function renderCfgTipos(){
-  document.getElementById("cfg-tipos").innerHTML=CFG.tipos.map(t=>`
-    <div class="cfg-tag">${t}<button onclick="removeCfgItem('tipos','${t}')">×</button></div>`).join("");
-}
-function renderCfgPrios(){
-  document.getElementById("cfg-prios").innerHTML=CFG.prios.map(p=>`
-    <div class="cfg-tag">${p.label}<button onclick="removeCfgPrio('${p.val}')">×</button></div>`).join("");
-}
-function renderCfgTemplates(){
-  document.getElementById("cfg-templates").innerHTML=CFG.tipos.map(t=>`
-    <div class="cfg-template">
-      <label>${t}</label>
-      <textarea id="tpl-${t.replace(/\s/g,'_')}" placeholder="Template de materiais para ${t}...">${CFG.templates[t]||""}</textarea>
-    </div>`).join("");
-}
-function addCfgItem(tipo,inputId){
-  const v=document.getElementById(inputId).value.trim();if(!v)return;
-  if(tipo==="tipos"){if(!CFG.tipos.includes(v)){CFG.tipos.push(v);document.getElementById(inputId).value="";renderCfgTipos();renderCfgTemplates();}}
-  if(tipo==="prios"){const val=v.toLowerCase().replace(/\s+/g,"-");if(!CFG.prios.find(p=>p.val===val)){CFG.prios.push({val,label:v});document.getElementById(inputId).value="";renderCfgPrios();}}
-}
-function removeCfgItem(tipo,v){
-  if(tipo==="tipos")CFG.tipos=CFG.tipos.filter(t=>t!==v);
-  renderCfgTipos();renderCfgTemplates();
-}
-function removeCfgPrio(val){
-  CFG.prios=CFG.prios.filter(p=>p.val!==val);renderCfgPrios();
-}
-function salvarConfig(){
-  CFG.tipos.forEach(t=>{
-    const el=document.getElementById("tpl-"+t.replace(/\s/g,"_"));
-    if(el&&el.value.trim())CFG.templates[t]=el.value.trim();
-    else delete CFG.templates[t];
-  });
-  saveCfgLocal(CFG);populateSelects();cls("m-config");showToast("✓ Configurações salvas!");
-}
-
-
-/* ─── AGENDA ─── */
-let agView='semana', agTec='all', agRef=new Date();
-
-const HORAS=[7,8,9,10,11,12,13,14,15,16,17,18,19];
-const DIAS_PT=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-const MESES_PT=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-
-function agHoje(){ agRef=new Date(); renderAgenda(); }
-function agNav(d){
-  if(agView==='semana'){ agRef=new Date(agRef); agRef.setDate(agRef.getDate()+d*7); }
-  else if(agView==='mes'){ agRef=new Date(agRef.getFullYear(), agRef.getMonth()+d, 1); }
-  else if(agView==='dia'){ agRef=new Date(agRef); agRef.setDate(agRef.getDate()+d); }
-  renderAgenda();
-}
-function agSetView(v){
-  agView=v;
-  ['semana','mes','dia'].forEach(x=>{ document.getElementById('agv-'+x).className='ag-vbtn'+(x===v?' active':''); });
-  renderAgenda();
-}
-function agSetTec(t,btn){
-  agTec=t;
-  document.querySelectorAll('.ag-tf').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderAgenda();
+  showToast("Endereço não encontrado. Clique no mapa para marcar.");
 }
 
 function agFiltrar(list){
