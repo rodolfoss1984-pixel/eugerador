@@ -785,7 +785,6 @@ function cardClienteGrid(c){
       <button class="cc-btn" onclick="verHistoricoCliente('${c.id}','${c.nome.replace(/'/g,"")}')">📋 Histórico</button>
       <button class="cc-btn" onclick="openEditCliente('${c.id}')">✏️ Editar</button>
       <button class="cc-btn primary" onclick="abrirChamadoPara('${c.id}')">+ Chamado</button>
-      <button class="cc-btn" onclick="excluirCliente('${c.id}','${c.nome.replace(/'/g,"")}')" style="color:#8b1a1a;border-color:#f5c0c0;flex:0;padding:4px 8px">🗑</button>
     </div>
   </div>`;
 }
@@ -801,7 +800,6 @@ function cardClienteRow(c){
       <button class="cc-btn" onclick="verHistoricoCliente('${c.id}','${c.nome.replace(/'/g,"")}')">📋</button>
       <button class="cc-btn" onclick="openEditCliente('${c.id}')">✏️</button>
       <button class="cc-btn primary" onclick="abrirChamadoPara('${c.id}')">+ OS</button>
-      <button class="cc-btn" onclick="excluirCliente('${c.id}','${c.nome.replace(/'/g,"")}')" style="color:#8b1a1a;border-color:#f5c0c0">🗑</button>
     </div>
   </div>`;
 }
@@ -888,8 +886,11 @@ async function excluirClienteModal(){
   if(!editClienteId) return;
   const c=CLIENTES.find(x=>x.id===editClienteId);
   if(!c) return;
-  const ok=window.confirm('Excluir o cliente "'+c.nome+'"? Esta ação não pode ser desfeita.');
+  const ok=window.confirm('Excluir o cliente "'+c.nome+'"? Os chamados vinculados serão desvinculados.');
   if(!ok) return;
+  // Primeiro desvincular chamados (remover cliente_id)
+  await sb.from('chamados').update({cliente_id:null}).eq('cliente_id',editClienteId);
+  // Depois excluir cliente
   const{error}=await sb.from('clientes').delete().eq('id',editClienteId);
   if(error){ showToast('Erro ao excluir: '+(error.message||'')); return; }
   CLIENTES=CLIENTES.filter(x=>x.id!==editClienteId);
