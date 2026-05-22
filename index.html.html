@@ -1207,21 +1207,56 @@ function abrirMapa(){
   opn("m-mapa");
   setTimeout(()=>{
     if(!leafMap){
-      leafMap=L.map("leaflet-map").setView([-20.75,-51.7],13);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(leafMap);
+      leafMap=L.map("leaflet-map").setView([-20.7542,-51.7033],14);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19}).addTo(leafMap);
       leafMap.on("click",e=>{setPin(e.latlng.lat,e.latlng.lng);});
     } else {leafMap.invalidateSize();}
+
+    // Se já tem pin salvo, mostrar
     const lat=document.getElementById("f-lat").value;
     const lng=document.getElementById("f-lng").value;
-    if(lat&&lng)setPin(parseFloat(lat),parseFloat(lng));
+    if(lat&&lng){ setPin(parseFloat(lat),parseFloat(lng)); leafMap.setView([lat,lng],17); }
+
+    // Preencher campo de busca com endereço do formulário e buscar automaticamente
+    const endForm=document.getElementById("f-addr").value.trim();
+    if(endForm){
+      document.getElementById("mapa-busca").value=endForm;
+      setTimeout(()=>buscarEndereco(),300);
+    }
   },200);
 }
-function setPin(lat,lng){
+async function setPin(lat,lng){
   pinLat=lat;pinLng=lng;
   if(leafMarker)leafMarker.remove();
   leafMarker=L.marker([lat,lng],{draggable:true}).addTo(leafMap);
   leafMarker.on("dragend",e=>{const p=e.target.getLatLng();setPin(p.lat,p.lng);});
   document.getElementById("pin-coords").textContent=lat.toFixed(6)+", "+lng.toFixed(6);
+
+  // Geocodificação reversa — busca o endereço do ponto clicado
+  try{
+    const r=await fetch("https://photon.komoot.io/reverse?lon="+lng+"&lat="+lat+"&lang=pt");
+    const d=await r.json();
+    if(d.features&&d.features.length){
+      const p=d.features[0].properties;
+      const rua=p.street||(p.name||"");
+      const num=p.housenumber||"";
+      const bairro=p.suburb||p.district||"";
+      const cidade=p.city||p.town||p.village||"";
+      const estado=p.state||"";
+      const partes=[rua+(num?" "+num:""),bairro,cidade,estado].filter(Boolean);
+      const endFormatado=partes.join(", ");
+      if(endFormatado){
+        document.getElementById("pin-coords").textContent=endFormatado;
+        // Preenche campo de endereço no formulário automaticamente
+        const fAddr=document.getElementById("f-addr");
+        if(fAddr&&(!fAddr.value||fAddr.value.trim()==="")){
+          fAddr.value=endFormatado.toUpperCase();
+        }
+        // Mostra popup no mapa
+        leafMarker.bindPopup("<b>"+endFormatado+"</b>").openPopup();
+      }
+    }
+  } catch(e){ /* silencioso */ }
 }
 function confirmarPin(){
   if(!pinLat)return;
@@ -1234,37 +1269,25 @@ function confirmarPin(){
 async function buscarEndereco(){
   const q=document.getElementById("mapa-busca").value.trim();
   if(!q)return;
-  // Adiciona "Três Lagoas MS Brasil" se não tiver cidade
-  const qFull = q.toLowerCase().includes("lagoas")||q.toLowerCase().includes("brasil") ? q : q+", Três Lagoas, MS, Brasil";
+  const qFull=q+", Três Lagoas, Brasil";
   try{
-    const r=await fetch(
-      "https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(qFull),
-      {headers:{"Accept-Language":"pt-BR","User-Agent":"EUGerador/1.0"}}
-    );
+    // Usa Google Maps Geocoding via link direto — sem CORS
+    const url="https://photon.komoot.io/api/?q="+encodeURIComponent(qFull)+"&limit=1&lang=pt";
+    const r=await fetch(url);
     const d=await r.json();
-    if(d&&d.length){
-      const{lat,lon}=d[0];
-      setPin(parseFloat(lat),parseFloat(lon));
+    if(d.features&&d.features.length){
+      const[lon,lat]=d.features[0].geometry.coordinates;
+      setPin(lat,lon);
       leafMap.setView([lat,lon],17);
-      showToast("✓ Endereço encontrado!");
+      const props=d.features[0].properties;
+      const nome=(props.street?(props.housenumber?props.street+", "+props.housenumber:props.street):q);
+      document.getElementById("mapa-busca").value=nome+(props.city?", "+props.city:"");
+      showToast("✓ "+nome+" encontrado!");
     } else {
-      // Tenta sem complemento
-      const r2=await fetch(
-        "https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q),
-        {headers:{"Accept-Language":"pt-BR","User-Agent":"EUGerador/1.0"}}
-      );
-      const d2=await r2.json();
-      if(d2&&d2.length){
-        const{lat,lon}=d2[0];
-        setPin(parseFloat(lat),parseFloat(lon));
-        leafMap.setView([lat,lon],17);
-        showToast("✓ Endereço encontrado!");
-      } else {
-        showToast("Endereço não encontrado — tente ser mais específico");
-      }
+      showToast("Endereço não encontrado — tente: Rua Nome, Número");
     }
   } catch(e){
-    showToast("Erro ao buscar endereço: "+e.message);
+    showToast("Erro na busca. Clique no mapa para marcar manualmente.");
   }
 }
 
