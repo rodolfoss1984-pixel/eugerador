@@ -424,6 +424,7 @@ body{font-family:'DM Sans',sans-serif;background:#f0efe9;color:#1a1916;min-heigh
       <button class="ag-tf on" id="ag-tf-all" onclick="agSetTec('all',this)">Todos</button>
       <button class="ag-tf df" id="ag-tf-df" onclick="agSetTec('DF',this)">Diego</button>
       <button class="ag-tf kh" id="ag-tf-kh" onclick="agSetTec('KH',this)">Kayk</button>
+      <button class="ag-tf" id="ag-tf-rs" onclick="agSetTec('RS',this)" style="color:#1a5c2a;border-color:#9FE1AB">Rodolfo</button>
     </div>
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
       <div class="ag-view-toggle">
@@ -1200,7 +1201,7 @@ function openWA(id){
   opn("m-wa");
 }
 function enviarWA(num){
-  window.open("https://wa.me/"+num,"_blank");
+  location.href="whatsapp://send?phone="+num;
   cls("m-wa");
 }
 
