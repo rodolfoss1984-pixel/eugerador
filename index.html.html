@@ -708,8 +708,6 @@ function confirm(msg,okLabel="Confirmar"){
 function confirmResp(ok){cls("confirm-overlay");if(confirmCallback)confirmCallback(ok);confirmCallback=null;}
 
 /* ─── SUPABASE ─── */
-let DB_NUM=[]; // ordenado por criação para numeração fixa
-
 async function loadChamados(){
   const{data,error}=await sb.from("chamados").select("*").neq("status","arquivado").order("data_criacao",{ascending:false});
   if(!error&&data){
