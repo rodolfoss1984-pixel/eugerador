@@ -243,7 +243,7 @@ function cardH(c){
     <div class="card-addr">📍 ${c.endereco||"—"}</div>
     <div class="card-footer">
       <span class="card-date">${c.data_agendada?"📅 "+fDT(c.data_agendada,c.hora_agendada):""}</span>
-      ${tel?`<div class="card-wa" onclick="event.stopPropagation();waDireto('${telEsc}','${c.cliente_nome.replace(/'/g,"")}','${(c.endereco||"").replace(/'/g,"")}','${c.data_agendada||""}','${c.hora_agendada||""}')">${waIco()}</div>`:""}
+      ${tel?`<div class="card-wa" onclick="event.stopPropagation();waDireto('${telEsc}')">${waIco()}</div>`:""}
     </div>
   </div>`;
 }
@@ -284,27 +284,17 @@ function toggle(id){
   if(!wasOpen) a.classList.add("open");
 }
 
-function msgWA(nome, end, data, hora, tipo, modo){
-  const dt=fDT(data,hora);
-  let m=`Olá *${nome}*! 👋\nSou *${TEC.nome}* da *EU Gerador*.\n\n`;
-  if(modo==="caminho") m+=`Estou a caminho para o serviço de *${tipo}*.\n📍 ${end}\n\nAguarde, em breve estou aí! ✅`;
-  else if(modo==="reagendado") m+=`Seu serviço de *${tipo}* foi reagendado para:\n📅 *${dt}*\n📍 ${end}\n\nQualquer dúvida, me chame aqui!`;
-  else m+=`Seu atendimento de *${tipo}* está agendado:\n📅 ${dt}\n📍 ${end}\n\nQualquer dúvida, pode me chamar!`;
-  return m;
-}
 
 function abrirWA(){
   if(!OS)return;
   const tel=(OS._tel||"").replace(/\D/g,"");
   if(!tel){ toast("Telefone não cadastrado"); return; }
-  const m=msgWA(OS.cliente_nome,OS.endereco||"",OS.data_agendada||"",OS.hora_agendada||"",OS.tipo);
-  window.open("https://wa.me/"+tel+"?text="+encodeURIComponent(m),"_blank");
+  window.open("https://wa.me/"+tel,"_blank");
 }
 
-function waDireto(tel,nome,end,data,hora){
+function waDireto(tel){
   if(!tel){ toast("Telefone não cadastrado"); return; }
-  const m=msgWA(nome,end,data,hora,"Atendimento");
-  window.open("https://wa.me/"+tel.replace(/\D/g,"")+"?text="+encodeURIComponent(m),"_blank");
+  window.open("https://wa.me/"+tel.replace(/\D/g,""),"_blank");
 }
 
 function abrirMapa(){
@@ -321,11 +311,6 @@ async function salvarReagendar(){
   const novaHora=val.split("T")[1];
   const {error}=await sb.from("chamados").update({data_agendada:novaData,hora_agendada:novaHora}).eq("id",OS.id);
   if(error){ toast("Erro ao reagendar"); return; }
-  const tel=(OS._tel||"").replace(/\D/g,"");
-  if(tel){
-    const m=msgWA(OS.cliente_nome,OS.endereco||"",novaData,novaHora,OS.tipo,"reagendado");
-    window.open("https://wa.me/"+tel+"?text="+encodeURIComponent(m),"_blank");
-  }
   OS.data_agendada=novaData; OS.hora_agendada=novaHora;
   document.getElementById("d-data").textContent=fDT(novaData,novaHora);
   document.getElementById("e-reagendar").classList.remove("open");
@@ -352,11 +337,6 @@ async function acaoPrincipal(){
   if(OS.status==="aberto"){
     const {error}=await sb.from("chamados").update({status:"andamento"}).eq("id",OS.id);
     if(error){ toast("Erro ao iniciar"); return; }
-    const tel=(OS._tel||"").replace(/\D/g,"");
-    if(tel){
-      const m=msgWA(OS.cliente_nome,OS.endereco||"",OS.data_agendada||"",OS.hora_agendada||"",OS.tipo,"caminho");
-      window.open("https://wa.me/"+tel+"?text="+encodeURIComponent(m),"_blank");
-    }
     OS.status="andamento";
     document.getElementById("btn-acao").textContent="✓ Concluir atendimento";
     document.getElementById("btn-acao").className="btn-main verde";
