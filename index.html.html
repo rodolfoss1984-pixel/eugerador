@@ -677,7 +677,7 @@ function populateSelects(){
 
 /* ─── ESTADO ─── */
 const TECHS=[{key:"DF",name:"Diego Fernandes",num:"5518996812807"},{key:"KH",name:"Kayk Henrique",num:"5518991208901"}];
-const TICON={"Instalação":"⚡","Manutenção":"🔧","Limpeza":"🧹","Vistoria":"🔍","Orçamento":"📋","Outros":"📌"};
+const TICON={"Instalação":"⚡","Manutenção":"🔧","Limpeza":"🧹","Vistoria":"🔍","Orçamento":"📋","Monitoramento":"🖥","Outros":"📌"};
 const TEC_COR={DF:["#e8eef5","#1e3a5f"],KH:["#f0edf5","#3d1f6b"]};
 const BCLS={urgente:"b-urg",normal:"b-nor",baixa:"b-bai"};
 const CORES=[["#e8f0ea","#2d5a3d"],["#e8eef5","#1e3a5f"],["#f5ece4","#6b2d0a"],["#f0edf5","#3d1f6b"],["#faeeda","#633806"],["#fdeaea","#7a1a1a"],["#e4f5ee","#0a4a2d"]];
@@ -1232,11 +1232,40 @@ function confirmarPin(){
   cls("m-mapa");
 }
 async function buscarEndereco(){
-  const q=document.getElementById("mapa-busca").value.trim();if(!q)return;
-  const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q));
-  const d=await r.json();
-  if(d.length){const{lat,lon}=d[0];setPin(parseFloat(lat),parseFloat(lon));leafMap.setView([lat,lon],16);}
-  else showToast("Endereço não encontrado");
+  const q=document.getElementById("mapa-busca").value.trim();
+  if(!q)return;
+  // Adiciona "Três Lagoas MS Brasil" se não tiver cidade
+  const qFull = q.toLowerCase().includes("lagoas")||q.toLowerCase().includes("brasil") ? q : q+", Três Lagoas, MS, Brasil";
+  try{
+    const r=await fetch(
+      "https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(qFull),
+      {headers:{"Accept-Language":"pt-BR","User-Agent":"EUGerador/1.0"}}
+    );
+    const d=await r.json();
+    if(d&&d.length){
+      const{lat,lon}=d[0];
+      setPin(parseFloat(lat),parseFloat(lon));
+      leafMap.setView([lat,lon],17);
+      showToast("✓ Endereço encontrado!");
+    } else {
+      // Tenta sem complemento
+      const r2=await fetch(
+        "https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q),
+        {headers:{"Accept-Language":"pt-BR","User-Agent":"EUGerador/1.0"}}
+      );
+      const d2=await r2.json();
+      if(d2&&d2.length){
+        const{lat,lon}=d2[0];
+        setPin(parseFloat(lat),parseFloat(lon));
+        leafMap.setView([lat,lon],17);
+        showToast("✓ Endereço encontrado!");
+      } else {
+        showToast("Endereço não encontrado — tente ser mais específico");
+      }
+    }
+  } catch(e){
+    showToast("Erro ao buscar endereço: "+e.message);
+  }
 }
 
 /* ─── FOTOS ─── */
