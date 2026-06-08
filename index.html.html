@@ -1681,6 +1681,135 @@ setInterval(monitorarTecnicos, 30*1000);
 initCfg();
 loadChamados();
 loadClientes();
+/* ─── AGENDA: estado e constantes ─── */
+let agRef = new Date();
+let agView = 'semana';
+let agTec = 'all';
+
+const DIAS_PT   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const MESES_PT  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const HORAS     = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+
+function agSetView(v) {
+  agView = v;
+  ['semana','mes','dia'].forEach(x => {
+    const btn = document.getElementById('agv-'+x);
+    if (btn) btn.className = 'ag-vbtn' + (x === v ? ' active' : '');
+  });
+  renderAgenda();
+}
+
+function agSetTec(tec, btn) {
+  agTec = tec;
+  document.querySelectorAll('.ag-tf').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  renderAgenda();
+}
+
+function agNav(dir) {
+  if (agView === 'semana') {
+    agRef = addDays(agRef, dir * 7);
+  } else if (agView === 'mes') {
+    agRef = new Date(agRef.getFullYear(), agRef.getMonth() + dir, 1);
+  } else {
+    agRef = addDays(agRef, dir);
+  }
+  renderAgenda();
+}
+
+function agHoje() {
+  agRef = new Date();
+  renderAgenda();
+}
+
+/* ─── CONFIGURAÇÕES ─── */
+function abrirConfig() {
+  renderCfgTipos();
+  renderCfgPrios();
+  renderCfgTemplates();
+  opn('m-config');
+}
+
+function renderCfgTipos() {
+  const el = document.getElementById('cfg-tipos');
+  el.innerHTML = CFG.tipos.map(t =>
+    `<span class="cfg-tag">${t}<button onclick="removeCfgItem('tipos','${t}')">×</button></span>`
+  ).join('');
+}
+
+function renderCfgPrios() {
+  const el = document.getElementById('cfg-prios');
+  el.innerHTML = CFG.prios.map(p =>
+    `<span class="cfg-tag">${p.label} (${p.val})<button onclick="removeCfgPrio('${p.val}')">×</button></span>`
+  ).join('');
+}
+
+function renderCfgTemplates() {
+  const el = document.getElementById('cfg-templates');
+  el.innerHTML = CFG.tipos.map(tipo => `
+    <div class="cfg-template">
+      <label>${tipo}</label>
+      <textarea id="tpl-${tipo.replace(/\s/g,'_')}" placeholder="Template de materiais para ${tipo}...">${CFG.templates[tipo]||''}</textarea>
+    </div>
+  `).join('');
+}
+
+function addCfgItem(key, inputId) {
+  const input = document.getElementById(inputId);
+  const val = input.value.trim();
+  if (!val) return;
+  if (key === 'tipos') {
+    if (!CFG.tipos.includes(val)) { CFG.tipos.push(val); renderCfgTipos(); renderCfgTemplates(); populateSelects(); }
+  }
+  input.value = '';
+}
+
+function removeCfgItem(key, val) {
+  if (key === 'tipos') { CFG.tipos = CFG.tipos.filter(t => t !== val); renderCfgTipos(); renderCfgTemplates(); populateSelects(); }
+}
+
+function removeCfgPrio(val) {
+  CFG.prios = CFG.prios.filter(p => p.val !== val);
+  renderCfgPrios(); populateSelects();
+}
+
+function salvarConfig() {
+  // Salvar templates
+  CFG.tipos.forEach(tipo => {
+    const id = 'tpl-' + tipo.replace(/\s/g,'_');
+    const el = document.getElementById(id);
+    if (el) CFG.templates[tipo] = el.value.trim();
+  });
+  saveCfgLocal(CFG);
+  cls('m-config');
+  showToast('✓ Configurações salvas!');
+}
+
+/* ─── FOTOS ─── */
+function previewFotos(input) {
+  const grid = document.getElementById('fotos-grid');
+  Array.from(input.files).forEach(file => {
+    fotosNovas.push(file);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.className = 'foto-thumb';
+      grid.insertBefore(img, grid.querySelector('.foto-upload'));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function saveExec() {
+  const obs = document.getElementById('f-exec').value.trim();
+  if (viewId) {
+    sb.from('chamados').update({ comentarios: obs }).eq('id', viewId).then(() => {
+      cls('m-exec'); loadChamados(); showToast('✓ Execução registrada!');
+    });
+  }
+}
 </script>
 </body>
 </html>
